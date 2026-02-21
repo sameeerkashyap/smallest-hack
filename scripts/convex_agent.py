@@ -301,7 +301,7 @@ def create_google_calendar_event(memory: Dict[str, Any], timeout: int) -> Dict[s
         [
             "BEGIN:VCALENDAR",
             "VERSION:2.0",
-            "PRODID:-//EchoVault//Meeting Agent//EN",
+            "PRODID:-//Nura//Meeting Agent//EN",
             "CALSCALE:GREGORIAN",
             "METHOD:PUBLISH",
             "BEGIN:VEVENT",

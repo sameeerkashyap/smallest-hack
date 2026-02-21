@@ -31,7 +31,7 @@ console.error(`[MCP] HTTP endpoint URL: ${HTTP_URL}`);
 
 const server = new Server(
   {
-    name: "voice-memory",
+    name: "nura",
     version: "1.0.0",
   },
   {
