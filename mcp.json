@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "voice-memory": {
+      "command": "npx",
+      "args": ["tsx", "mcp-server/index.ts"],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "CONVEX_URL": "${env:NEXT_PUBLIC_CONVEX_URL}"
+      }
+    }
+  }
+}

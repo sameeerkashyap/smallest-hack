@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Personal Memory Engine",
-  description: "Store and search your memories with AI",
+  title: "Nura",
+  description: "Nura is an agentic memory layer acting as your second brain.",
 };
 
 export default function RootLayout({

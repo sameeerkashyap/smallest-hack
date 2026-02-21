@@ -1,227 +1,153 @@
-# EchoVault
+# Nura
 
-A personal memory engine that captures, stores, and retrieves your thoughts using voice or text. Powered by AI for intelligent extraction and semantic search.
+Nura is an agentic memory layer acting as your second brain.
 
-## Features
+It captures conversations, stores structured memory in Convex, and runs background agents that execute actions from new context.
 
-- **Voice Recording**: Speak your thoughts and have them automatically transcribed
-- **Text Input**: Type memories directly when voice isn't convenient
-- **AI Extraction**: Claude automatically extracts people, tasks, topics, and decisions from your memories
-- **Semantic Search**: Ask natural language questions about your memories
-- **Real-time Sync**: Memories appear instantly across all connected clients
-- **MCP Integration**: Access your memories from Claude Desktop or Claude Code
+## What Nura Does
 
-## Architecture
+- Captures voice and text memories
+- Extracts structure (`summary`, `people`, `tasks`, `topics`, `decisions`)
+- Supports semantic memory search and chat over context
+- Runs a long-lived Python agent on new memories
+- Persists executed agent actions to Convex for UI visibility
 
+## Agentic Second-Brain Loop
+
+1. A memory is added from UI, MCP, or HTTP.
+2. Convex stores structured memory + embedding.
+3. Agent polls `POST /memories/since` for new entries.
+4. Agent runs custom actions based on memory intent.
+5. Action results are written to `agentActions`.
+6. Dashboard renders live agent activity.
+
+## Built-in Agent Actions
+
+### `meeting_to_google_calendar`
+- Detects meeting intent (`meeting`, `call`, `sync`, `standup`, `interview`).
+- Parses date/time from memory text:
+  - `YYYY-MM-DD HH:MM`
+  - `YYYY-MM-DDTHH:MM`
+  - `YYYY-MM-DD` (defaults to 09:00 local)
+- Generates `.ics` invite files in `scripts/generated_invites` (or `AGENT_ICS_DIR`).
+- Opens Google Calendar create page with prefilled fields:
+  - `https://calendar.google.com/calendar/u/0/r/settings/createcalendar`
+  - includes `name` and `description` query params.
+
+### `goal_coaching_suggestions`
+- Detects goal language (`goal`, `get better`, `improve`, `practice`, `learn`, etc.).
+- Produces structured suggestions:
+  - `goal`
+  - `suggestions[]`
+  - `weekly_plan[]`
+  - `first_step`
+- Uses OpenAI when configured, otherwise fallback heuristic planner.
+
+## System Architecture
+
+- `Next.js` app: second-brain dashboard UI
+- `Convex`: memory store, vector search, HTTP routes, action logs
+- `Python agent`: continuous custom action execution
+
+Core tables:
+- `memories`
+- `agentActions`
+
+## Local Setup
+
+### 1) Install dependencies
+
+```bash
+npm install
+cd mcp-server && npm install && cd ..
 ```
-┌─────────────────────────────────────────────────────┐
-│                    FRONTEND                         │
-│  VoiceRecorder → Record voice or type text          │
-│  SearchChat    → Ask questions about memories       │
-│  MemoryList    → View all stored memories           │
-└─────────────────────┬───────────────────────────────┘
-                      │
-┌─────────────────────▼───────────────────────────────┐
-│                 CONVEX BACKEND                      │
-│  • Stores memories with vector embeddings           │
-│  • Claude extracts: people, tasks, topics, decisions│
-│  • Vector search finds relevant memories            │
-│  • Claude synthesizes answers from memories         │
-└─────────────────────┬───────────────────────────────┘
-                      │
-┌─────────────────────▼───────────────────────────────┐
-│                 EXTERNAL APIs                       │
-│  smallest.ai  → Voice transcription                 │
-│  Claude API   → Extraction + answer synthesis       │
-│  OpenAI API   → Embeddings for semantic search      │
-└─────────────────────────────────────────────────────┘
+
+### 2) Configure `.env.local`
+
+```bash
+CONVEX_DEPLOYMENT=anonymous:anonymous-echovault
+NEXT_PUBLIC_CONVEX_URL=http://127.0.0.1:3210
+NEXT_PUBLIC_CONVEX_SITE_URL=http://127.0.0.1:3211
+
+SMALLEST_API_KEY=...
+OPENAI_API_KEY=...
+ANTHROPIC_API_KEY=...
 ```
 
-## Getting Started
+### 3) Run Nura (3 terminals)
 
-### Prerequisites
-
-- Node.js 18+
-- npm or yarn
-- API keys for:
-  - [Anthropic](https://console.anthropic.com/) (Claude)
-  - [OpenAI](https://platform.openai.com/) (embeddings)
-  - [Smallest.ai](https://smallest.ai/) (voice transcription - optional)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/echovault.git
-   cd echovault
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   cd mcp-server && npm install && cd ..
-   ```
-
-3. **Set up Convex**
-   ```bash
-   npx convex dev
-   ```
-   This will prompt you to create a Convex account and project.
-
-4. **Configure environment variables**
-
-   Create `.env.local`:
-   ```bash
-   CONVEX_DEPLOYMENT=dev:your-project-name
-   NEXT_PUBLIC_CONVEX_URL=https://your-project.convex.cloud
-   NEXT_PUBLIC_CONVEX_SITE_URL=https://your-project.convex.site
-   SMALLEST_API_KEY=your_smallest_api_key  # Optional, for voice
-   ```
-
-   In Convex Dashboard → Settings → Environment Variables:
-   ```
-   ANTHROPIC_API_KEY=sk-ant-...
-   OPENAI_API_KEY=sk-...
-   ```
-
-5. **Start the development server**
-   ```bash
-   # Terminal 1: Convex backend
-   npx convex dev
-
-   # Terminal 2: Next.js frontend
-   npm run dev
-   ```
-
-6. **Open http://localhost:3000**
-
-## Usage
-
-### Adding Memories
-
-- **Voice**: Click the microphone button, speak, then click stop
-- **Text**: Type in the text field and click "Add"
-
-### Searching Memories
-
-Type natural language questions like:
-- "What tasks do I have?"
-- "What did I discuss with John?"
-- "What decisions have I made about the product?"
-
-### MCP Integration (Claude Desktop)
-
-1. Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
-   ```json
-   {
-     "mcpServers": {
-       "echovault": {
-         "command": "npx",
-         "args": ["tsx", "/path/to/echovault/mcp-server/index.ts"],
-         "env": {
-           "CONVEX_URL": "https://your-project.convex.site"
-         }
-       }
-     }
-   }
-   ```
-
-2. Restart Claude Desktop
-
-3. Use tools like:
-   - "Add a memory: I need to buy groceries tomorrow"
-   - "What memories do I have?"
-   - "What are my tasks?"
-
-## Python Agent Worker
-
-You can run a long-lived Python worker that polls Convex for new `memories` entries and runs custom actions.
-
-Built-in custom action:
-- If a memory looks like a meeting, generate an `.ics` invite file and provide a Google Calendar import link.
-- If a memory contains a goal, generate personalized coaching suggestions.
-
-### 1. Start your Convex backend
-
+Terminal A (Convex local backend):
 ```bash
 npx convex dev
 ```
 
-### 2. Run the worker
-
+Terminal B (web app):
 ```bash
-python3 scripts/convex_agent.py --base-url https://your-project.convex.site
+npm run dev
 ```
 
-You can also set:
+Terminal C (agent):
+```bash
+python3 scripts/convex_agent.py --base-url http://127.0.0.1:3211
+```
+
+## Agent Runtime Config
+
+Optional environment variables:
 
 ```bash
-export CONVEX_SITE_URL=https://your-project.convex.site
+export CONVEX_SITE_URL=http://127.0.0.1:3211
 export AGENT_POLL_INTERVAL=3
+export AGENT_REQUEST_TIMEOUT=30
+export AGENT_STATE_FILE=scripts/.convex_agent_state.json
+export AGENT_ICS_DIR=scripts/generated_invites
+export AGENT_OPEN_BROWSER=true
 export OPENAI_API_KEY=sk-...
-python3 scripts/convex_agent.py
 ```
 
-### 3. Add a memory that should trigger an action
+## Convex HTTP Endpoints Used
 
-Use the normal add-memory endpoint:
+- `POST /add-memory`
+- `POST /search`
+- `GET /memories`
+- `POST /memories/since`
+- `POST /agent-actions/log`
+- `GET /agent-actions`
+
+## UI Layout
+
+Nura dashboard sections:
+- Left: live transcription
+- Right top: memories + chat
+- Right bottom: executed agent actions
+
+`Agent Actions` panel reads `/api/agent-actions`, which proxies Convex `/agent-actions`.
+
+## Troubleshooting
+
+### Agent Actions panel shows `Failed with status 500`
+- Ensure Convex local backend is running:
+  - `npx convex dev`
+- Verify endpoint health:
+  - `http://127.0.0.1:3211/agent-actions?limit=5`
+
+### Agent still shows old behavior
+An old Python process is usually running. Restart agent:
 
 ```bash
-curl -X POST "$CONVEX_SITE_URL/add-memory" \
-  -H "Content-Type: application/json" \
-  -d '{"text":"Meeting with Priya on 2026-02-23 14:30 about Q2 planning","source":"text"}'
+pkill -f "convex_agent.py" || true
+python3 scripts/convex_agent.py --base-url http://127.0.0.1:3211
 ```
 
-Agent polling endpoint:
-- `POST /memories/since` with `{ "since": <timestamp_ms>, "limit": 100 }`
+### Browser does not open for calendar flow
+- Ensure `AGENT_OPEN_BROWSER` is not `false`.
+- Ensure OS allows Python to open browser windows.
 
-Date parsing rules for meeting events:
-- `YYYY-MM-DD HH:MM`
-- `YYYY-MM-DDTHH:MM`
-- `YYYY-MM-DD` (defaults to `09:00` local)
-- Creates `.ics` files in `scripts/generated_invites` (or `AGENT_ICS_DIR`)
-- Returns Google Calendar import page link: `https://calendar.google.com/calendar/u/0/r/settings/export`
+## Important Paths
 
-Goal suggestion behavior:
-- Detects goal-like language (`goal`, `get better`, `improve`, `practice`, etc.)
-- Generates structured suggestions (`goal`, `suggestions`, `weekly_plan`, `first_step`)
-- Uses OpenAI when `OPENAI_API_KEY` is set, otherwise uses a local fallback plan
-- Every executed action is stored in Convex `agentActions` and shown in the dashboard
-
-## Project Structure
-
-```
-echovault/
-├── app/                    # Next.js app router
-│   ├── api/transcribe/     # Voice transcription endpoint
-│   ├── ConvexProvider.tsx  # Convex client provider
-│   ├── layout.tsx          # Root layout
-│   └── page.tsx            # Main page
-├── components/
-│   ├── VoiceRecorder.tsx   # Voice/text input component
-│   ├── MemoryList.tsx      # Display memories
-│   └── SearchChat.tsx      # Search interface
-├── convex/
-│   ├── schema.ts           # Database schema
-│   ├── memories.ts         # Memory CRUD + AI extraction
-│   ├── search.ts           # Vector search + AI synthesis
-│   └── http.ts             # HTTP endpoints for MCP
-├── mcp-server/
-│   ├── index.ts            # MCP server implementation
-│   └── package.json        # MCP dependencies
-└── lib/
-    ├── claude.ts           # Claude API helpers
-    └── smallest.ts         # Transcription helpers
-```
-
-## Tech Stack
-
-- **Frontend**: Next.js 14, React, Tailwind CSS
-- **Backend**: Convex (real-time database + serverless functions)
-- **AI**: Claude (extraction/synthesis), OpenAI (embeddings)
-- **Voice**: Smallest.ai Pulse API
-- **MCP**: Model Context Protocol for Claude integration
-
-## License
-
-MIT
+- `/Users/sameerkashyap/code/echovault/app/page.tsx`
+- `/Users/sameerkashyap/code/echovault/app/layout.tsx`
+- `/Users/sameerkashyap/code/echovault/convex/schema.ts`
+- `/Users/sameerkashyap/code/echovault/convex/http.ts`
+- `/Users/sameerkashyap/code/echovault/convex/agentActions.ts`
+- `/Users/sameerkashyap/code/echovault/scripts/convex_agent.py`

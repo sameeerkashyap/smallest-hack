@@ -14,7 +14,7 @@ export default function Home() {
     <div className="h-screen overflow-hidden bg-[radial-gradient(circle_at_50%_-20%,#1e1b4b_0%,#07090f_52%,#05070d_100%)] px-3 py-3 text-white md:px-4">
       <div className="mx-auto flex h-full w-full max-w-[1800px] flex-col gap-3">
         <header className="flex items-center justify-between px-1">
-          <h1 className="text-2xl font-semibold tracking-tight text-white">AI Second Brain</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-white">Nura</h1>
           <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-sm text-zinc-300">
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
             System Online
